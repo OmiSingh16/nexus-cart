@@ -1,28 +1,44 @@
 'use client'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import axios from "axios"
 import Loading from "../Loading"
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
 import SellerNavbar from "./StoreNavbar"
 import SellerSidebar from "./StoreSidebar"
-import { dummyStoreData } from "@/assets/assets"
+import { useAuth } from "@clerk/clerk-react"
 
 const StoreLayout = ({ children }) => {
-
-
+    const { getToken } = useAuth()
     const [isSeller, setIsSeller] = useState(false)
     const [loading, setLoading] = useState(true)
     const [storeInfo, setStoreInfo] = useState(null)
+    const hasFetched = useRef(false) // ✅ Prevent duplicate calls
 
     const fetchIsSeller = async () => {
-        setIsSeller(true)
-        setStoreInfo(dummyStoreData)
-        setLoading(false)
+        // ✅ Prevent duplicate API calls
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
+        try {
+            const token = await getToken()
+            const { data } = await axios.get('/api/store/is-seller', {
+                headers: { Authorization: `Bearer ${token}` }
+            }) 
+            setIsSeller(data.isSeller) 
+            setStoreInfo(data.storeInfo)
+        } catch (error) {
+            console.error("Auth check failed:", error)
+            // Optional: Add toast notification
+            // toast.error("Failed to verify seller status")
+        } finally {
+            setLoading(false)
+        }
     }
 
     useEffect(() => {
         fetchIsSeller()
-    }, [])
+    }, []) // ✅ Removed getToken dependency to prevent loops
 
     return loading ? (
         <Loading />
