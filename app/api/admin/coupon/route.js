@@ -1,4 +1,5 @@
 // app/api/admin/coupon/route.js
+import { inngest } from "@/inngest/client"
 import prisma from "@/lib/prisma"
 import authAdmin from "@/middlewares/authAdmin"
 import { getAuth } from "@clerk/nextjs/server"
@@ -22,6 +23,15 @@ export async function POST(request) {
         ...coupon,
         code: coupon.code.toUpperCase()
       }
+    }).then(async(coupon)=>{
+      // Run Inngest sheduler Function to delete coupon on expire
+      await inngest.send({
+        name: 'app/coupon.expired',
+        data:{
+          code: coupon.code,
+          expires_at: coupon.expiresAt,
+        }
+      })
     })
     
     return NextResponse.json({message:"Coupon added successfully"})
