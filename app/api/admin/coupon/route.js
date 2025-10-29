@@ -17,22 +17,31 @@ export async function POST(request) {
 
     const { coupon } = await request.json()
     
-    // ✅ Create coupon with Prisma (tumhara existing code)
-    await prisma.coupon.create({
+    if (!coupon?.code) {
+      return NextResponse.json({error: "Coupon code is required"}, {status: 400})
+    }
+    
+    // ✅ Create coupon with Prisma
+    const createdCoupon = await prisma.coupon.create({
       data: {
         ...coupon,
         code: coupon.code.toUpperCase()
       }
-    }).then(async(coupon)=>{
-      // Run Inngest sheduler Function to delete coupon on expire
+    })
+    
+    // ✅ Run Inngest scheduler Function to delete coupon on expire
+    try {
       await inngest.send({
         name: 'app/coupon.expired',
         data:{
-          code: coupon.code,
-          expires_at: coupon.expiresAt,
+          code: createdCoupon.code,
+          expires_at: createdCoupon.expiresAt,
         }
       })
-    })
+    } catch (inngestError) {
+      console.error("Inngest scheduling failed:", inngestError)
+      // Continue - don't fail the coupon creation if scheduling fails
+    }
     
     return NextResponse.json({message:"Coupon added successfully"})
   } catch (error) {
@@ -60,8 +69,12 @@ export async function DELETE(request) {
     const { searchParams } = request.nextUrl
     const code = searchParams.get('code')
     
+    if (!code) {
+      return NextResponse.json({error: "Coupon code is required"}, {status: 400})
+    }
+    
     await prisma.coupon.delete({
-      where: { code }
+      where: { code: code.toUpperCase() }
     })
     
     return NextResponse.json({message:"Coupon deleted successfully"})
