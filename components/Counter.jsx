@@ -1,19 +1,32 @@
 'use client'
 import { addToCart, removeFromCart } from "@/lib/features/cart/cartSlice";
 import { useDispatch, useSelector } from "react-redux";
+import { useUser, useAuth } from '@clerk/nextjs';  // ✅ Import add karo
+import { debouncedUploadCart } from "@/lib/features/cart/cartSlice";  // ✅ Import add 
 
 const Counter = ({ productId }) => {
 
     const { cartItems } = useSelector(state => state.cart);
 
     const dispatch = useDispatch();
+     const { user } = useUser();                    // ✅ Add yeh line
+    const { getToken } = useAuth();                // ✅ Add yeh line
 
     const addToCartHandler = () => {
         dispatch(addToCart({ productId }))
+        // ✅ Server sync for increase
+         if (user && getToken) {
+            dispatch(debouncedUploadCart(getToken))
+        }
     }
 
     const removeFromCartHandler = () => {
         dispatch(removeFromCart({ productId }))
+        // ✅ Server sync for decrease
+        if (user && getToken) {
+            dispatch(debouncedUploadCart(getToken))
+        }
+
     }
 
     return (

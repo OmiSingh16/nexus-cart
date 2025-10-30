@@ -7,15 +7,18 @@ import { Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useUser, useAuth } from '@clerk/nextjs';  // ✅ Import add karo
+import { debouncedUploadCart } from "@/lib/features/cart/cartSlice";  // ✅ Import add karo
 
 export default function Cart() {
 
-    const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
+    const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹';
     
     const { cartItems } = useSelector(state => state.cart);
     const products = useSelector(state => state.product.list);
-
     const dispatch = useDispatch();
+    const { user } = useUser();                    // ✅ Add yeh line
+    const { getToken } = useAuth();                // ✅ Add yeh line
 
     const [cartArray, setCartArray] = useState([]);
     const [totalPrice, setTotalPrice] = useState(0);
@@ -38,6 +41,11 @@ export default function Cart() {
 
     const handleDeleteItemFromCart = (productId) => {
         dispatch(deleteItemFromCart({ productId }))
+        
+        // ✅ Server sync for delete
+        if (user && getToken) {
+            dispatch(debouncedUploadCart(getToken))
+        }
     }
 
     useEffect(() => {
@@ -48,13 +56,11 @@ export default function Cart() {
 
     return cartArray.length > 0 ? (
         <div className="min-h-screen mx-6 text-slate-800">
-
             <div className="max-w-7xl mx-auto ">
                 {/* Title */}
                 <PageTitle heading="My Cart" text="items in your cart" linkText="Add more" />
 
                 <div className="flex items-start justify-between gap-5 max-lg:flex-col">
-
                     <table className="w-full max-w-4xl text-slate-600 table-auto">
                         <thead>
                             <tr className="max-sm:text-sm">

@@ -1,27 +1,35 @@
 'use client'
 
-import { addToCart } from "@/lib/features/cart/cartSlice";
+import { addToCart, debouncedUploadCart } from "@/lib/features/cart/cartSlice";  // ✅ debouncedUploadCart add karo
 import { StarIcon, TagIcon, EarthIcon, CreditCardIcon, UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import Counter from "./Counter";
 import { useDispatch, useSelector } from "react-redux";
+import { useUser, useAuth } from '@clerk/nextjs';  // ✅ Import add karo
 
 const ProductDetails = ({ product }) => {
 
     const productId = product.id;
-    const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
+    const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹';
 
     const cart = useSelector(state => state.cart.cartItems);
     const dispatch = useDispatch();
-
+    const { user } = useUser();                 
+    const { getToken } = useAuth();            
     const router = useRouter()
 
     const [mainImage, setMainImage] = useState(product.images[0]);
 
     const addToCartHandler = () => {
         dispatch(addToCart({ productId }))
+        
+        //  Only sync to server if user is logged in
+        if (user && getToken) {
+            dispatch(debouncedUploadCart(getToken))
+            
+        } 
     }
 
     const averageRating = product.rating.reduce((acc, item) => acc + item.rating, 0) / product.rating.length;

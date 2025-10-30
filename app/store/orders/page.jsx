@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react"
 import Loading from "@/components/Loading"
 import { orderDummyData } from "@/assets/assets"
+import { useAuth } from "@clerk/clerk-react"
+import axios from "axios"
+import toast from "react-hot-toast"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -9,16 +12,39 @@ export default function StoreOrders() {
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
+    const {getToken} = useAuth()
 
     const fetchOrders = async () => {
-       setOrders(orderDummyData)
-       setLoading(false)
+       try {
+        const token = await getToken()
+        const {data} = await axios.get('/api/store/orders',{headers:{Authorization:`Bearer ${token}`}}) 
+        setOrders(data.orders)
+       } catch (error) {
+        if (error?.response?.data?.error || error?.message) {
+                toast.error(error?.response?.data?.error || error.message)
+            }
+       }finally{
+        setLoading(false)
+       }
     }
 
     const updateOrderStatus = async (orderId, status) => {
-        // Logic to update the status of an order
-
-
+        try {
+        const token = await getToken()
+        const {data} = await axios.post('/api/store/orders',
+            {orderId, status},
+            {headers:{Authorization:`Bearer ${token}`}}) 
+        setOrders(prev =>
+            prev.map(order => 
+                order.id === orderId? {...order , status}: order
+            )
+        )
+        toast.success("Order status updated!")
+       } catch (error) {
+        if (error?.response?.data?.error || error?.message) {
+                toast.error(error?.response?.data?.error || error.message)
+            }
+       }
     }
 
     const openModal = (order) => {
@@ -63,7 +89,7 @@ export default function StoreOrders() {
                                         {index + 1}
                                     </td>
                                     <td className="px-4 py-3">{order.user?.name}</td>
-                                    <td className="px-4 py-3 font-medium text-slate-800">${order.total}</td>
+                                    <td className="px-4 py-3 font-medium text-slate-800">₹{order.total}</td>
                                     <td className="px-4 py-3">{order.paymentMethod}</td>
                                     <td className="px-4 py-3">
                                         {order.isCouponUsed ? (
@@ -127,7 +153,7 @@ export default function StoreOrders() {
                                         <div className="flex-1">
                                             <p className="text-slate-800">{item.product?.name}</p>
                                             <p>Qty: {item.quantity}</p>
-                                            <p>Price: ${item.price}</p>
+                                            <p>Price: ₹{item.price}</p>
                                         </div>
                                     </div>
                                 ))}
