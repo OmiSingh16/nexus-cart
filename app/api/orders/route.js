@@ -183,8 +183,10 @@ export async function POST(request) {
       });
 
       return NextResponse.json({ 
-        message: "Order Placed Successfully",
-        orderIds: orderIds 
+        success: true, 
+    message: "Order Placed Successfully",
+    orderIds: orderIds,
+    paymentMethod: paymentMethod
       });
     }
 

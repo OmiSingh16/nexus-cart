@@ -7,12 +7,16 @@ import { Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useUser, useAuth } from '@clerk/nextjs';  // ✅ Import add karo
-import { debouncedUploadCart } from "@/lib/features/cart/cartSlice";  // ✅ Import add karo
+import { useUser, useAuth } from '@clerk/nextjs'; 
+import { debouncedUploadCart } from "@/lib/features/cart/cartSlice";  
+import { assets } from "@/assets/assets";
+import { useRouter } from "next/navigation";
 
 export default function Cart() {
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹';
+
+     const router = useRouter();
     
     const { cartItems } = useSelector(state => state.cart);
     const products = useSelector(state => state.product.list);
@@ -103,8 +107,17 @@ export default function Cart() {
             </div>
         </div>
     ) : (
-        <div className="min-h-[80vh] mx-6 flex items-center justify-center text-slate-400">
-            <h1 className="text-2xl sm:text-4xl font-semibold">Your cart is empty</h1>
-        </div>
+        <div className="min-h-[80vh] mx-6 flex flex-col items-center justify-center text-slate-400 gap-8 px-4">
+    <div>
+        <Image className='w-40' src={assets.orderdelivery} alt="Empty cart" />
+    </div>
+    <h1 className="text-2xl sm:text-4xl font-semibold text-center">Your cart is empty</h1>
+    <button
+        onClick={() => router.push("/shop")}
+        className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-lg"
+    >
+        Start Shopping
+    </button>
+</div>
     )
 }

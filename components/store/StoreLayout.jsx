@@ -7,6 +7,8 @@ import { ArrowRightIcon } from "lucide-react"
 import SellerNavbar from "./StoreNavbar"
 import SellerSidebar from "./StoreSidebar"
 import { useAuth } from "@clerk/clerk-react"
+import Image from "next/image"
+import { assets } from "@/assets/assets"
 
 const StoreLayout = ({ children }) => {
     const { getToken } = useAuth()
@@ -54,7 +56,10 @@ const StoreLayout = ({ children }) => {
         </div>
     ) : (
         <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-            <h1 className="text-2xl sm:text-4xl font-semibold text-slate-400">You are not authorized to access this page</h1>
+             <div >
+    <Image className='w-28 sm:w-36 md:w-44 lg:w-50  mx-auto border-2 border-s-amber-300 border-slate-300 rounded-2xl bg-slate-50/50' src={assets.unauth} alt="Empty cart" />
+</div>  
+            <h1 className=" pt-1 text-2xl sm:text-4xl font-semibold text-slate-400">You are not authorized to access this page</h1>
             <Link href="/" className="bg-slate-700 text-white flex items-center gap-2 mt-8 p-2 px-6 max-sm:text-sm rounded-full">
                 Go to home <ArrowRightIcon size={18} />
             </Link>

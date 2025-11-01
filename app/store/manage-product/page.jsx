@@ -20,12 +20,19 @@ export default function StoreManageProducts() {
   const [updatingProducts, setUpdatingProducts] = useState(new Set());
   const [imageErrors, setImageErrors] = useState({});
   const [deletingProducts, setDeletingProducts] = useState(new Set());
+  const [showActive, setShowActive] = useState(true); // ✅ Toggle state
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ✅ Filtered products with toggle
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (showActive) {
+      return matchesSearch && product.isActive;
+    } else {
+      return matchesSearch && !product.isActive;
+    }
+  });
 
   const fetchProducts = async () => {
     try {
@@ -86,7 +93,6 @@ export default function StoreManageProducts() {
   };
 
   const deleteProduct = async (productId, productName) => {
-    // Toast confirmation instead of window.confirm
     toast(
       (t) => (
         <div className="flex flex-col gap-3">
@@ -114,7 +120,7 @@ export default function StoreManageProducts() {
         </div>
       ),
       {
-        duration: 10000, // 10 seconds
+        duration: 10000,
         position: "top-center",
       }
     );
@@ -129,7 +135,19 @@ export default function StoreManageProducts() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setProducts((prev) => prev.filter((product) => product.id !== productId));
+      // ✅ Product update karo (remove nahi)
+      setProducts((prev) => 
+        prev.map((product) => 
+          product.id === productId 
+            ? { 
+                ...product, 
+                isActive: false, 
+                inStock: false 
+              }
+            : product
+        )
+      );
+
       toast.success(data.message);
     } catch (error) {
       if (error?.response?.data?.error || error?.message) {
@@ -159,26 +177,59 @@ export default function StoreManageProducts() {
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5 gap-4">
-                <h1 className="text-2xl text-slate-500">
-                    Manage <span className="text-slate-800 font-medium">Products</span>
-                </h1>
-                <div className="flex gap-3">
-                    <input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full sm:w-64 p-2 px-4 border border-slate-200 rounded text-sm"
-                    />
-                    <button
-                        onClick={handleRefresh}
-                        disabled={refreshing}
-                        className="bg-black text-white px-4 py-2 rounded hover:bg-slate-800 transition text-sm whitespace-nowrap"
-                    >
-                        {refreshing ? 'Refreshing...' : 'Refresh'}
-                    </button>
-                </div>
-            </div>
+        <h1 className="text-2xl text-slate-500">
+          Manage <span className="text-slate-800 font-medium">Products</span>
+        </h1>
+        <div className="flex gap-3 items-center">
+          {/* ✅ Toggle Buttons */}
+ 
+
+<div className="flex bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-1.5 shadow-sm">
+  <button
+    onClick={() => setShowActive(true)}
+    className={`p-1 rounded-xl transition-all duration-300 ${
+      showActive 
+        ? 'bg-blue-500 text-white shadow-md' 
+        : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+    }`}
+    title="Active Products"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+</svg>
+  </button>
+  <button
+    onClick={() => setShowActive(false)}
+    className={`p-1 rounded-xl transition-all duration-300 ${
+      !showActive 
+        ? 'bg-red-500 text-white shadow-md' 
+        : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+    }`}
+    title="Discontinued Products"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M4.93 4.93l14.14 14.14"/>
+</svg>
+  </button>
+</div>
+
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full sm:w-64 p-2 px-4 border border-slate-200 rounded text-sm"
+          />
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="bg-black text-white px-4 py-2 rounded hover:bg-slate-800 transition text-sm whitespace-nowrap"
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
 
       {/* Desktop Table View */}
       <div className="hidden md:block">
@@ -201,7 +252,10 @@ export default function StoreManageProducts() {
                 >
                   <div className="flex flex-col items-center justify-center">
                     <p className="text-lg">
-                      {searchTerm ? "No products found" : "No products yet"}
+                      {showActive 
+                        ? (searchTerm ? "No active products found" : "No active products yet")
+                        : (searchTerm ? "No discontinued products found" : "No discontinued products yet")
+                      }
                     </p>
                   </div>
                 </td>
@@ -210,14 +264,18 @@ export default function StoreManageProducts() {
               filteredProducts.map((product) => (
                 <tr
                   key={product.id}
-                  className="border-t border-gray-200 hover:bg-gray-50"
+                  className={`border-t border-gray-200 hover:bg-gray-50 ${
+                    !product.isActive ? 'bg-red-50 opacity-80' : ''
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <div className="flex gap-2 items-center">
                       <Image
                         width={40}
                         height={40}
-                        className="p-1 shadow rounded cursor-pointer"
+                        className={`p-1 shadow rounded cursor-pointer ${
+                          !product.isActive ? 'opacity-50' : ''
+                        }`}
                         src={
                           imageErrors[product.id]
                             ? "/placeholder-image.jpg"
@@ -226,7 +284,16 @@ export default function StoreManageProducts() {
                         alt={product.name}
                         onError={() => handleImageError(product.id)}
                       />
-                      {product.name}
+                      <div className="flex flex-col">
+                        <span className={!product.isActive ? 'line-through text-slate-500' : ''}>
+                          {product.name}
+                        </span>
+                        {!product.isActive && (
+                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded w-fit mt-1">
+                            Discontinued
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 max-w-md text-slate-600 truncate">
@@ -242,29 +309,33 @@ export default function StoreManageProducts() {
                     <div className="flex items-center gap-3 justify-start">
                       <label
                         className={`relative inline-flex items-center cursor-pointer text-gray-900 gap-3 ${
-                          updatingProducts.has(product.id) ? "opacity-50" : ""
+                          updatingProducts.has(product.id) || !product.isActive ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
                         <input
                           type="checkbox"
                           className="sr-only peer"
                           onChange={() =>
-                            toast.promise(toggleStock(product.id), {
+                            !product.isActive ? null : toast.promise(toggleStock(product.id), {
                               loading: "Updating stock...",
                             })
                           }
                           checked={product.inStock}
-                          disabled={updatingProducts.has(product.id)}
+                          disabled={updatingProducts.has(product.id) || !product.isActive}
                         />
                         <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:bg-green-600 transition-colors duration-200"></div>
                         <span className="dot absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform duration-200 ease-in-out peer-checked:translate-x-4"></span>
                       </label>
                       <button
-                        onClick={() => deleteProduct(product.id, product.name)}
-                        disabled={deletingProducts.has(product.id)}
+                        onClick={() => 
+                          !product.isActive ? null : deleteProduct(product.id, product.name)
+                        }
+                        disabled={deletingProducts.has(product.id) || !product.isActive}
                         className={`relative p-2 rounded-full transition-all duration-200 ${
                           deletingProducts.has(product.id)
                             ? "bg-red-400 text-white cursor-not-allowed"
+                            : !product.isActive
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                             : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                         }`}
                       >
@@ -288,7 +359,10 @@ export default function StoreManageProducts() {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-8 text-slate-500 border border-slate-200 rounded-lg">
             <p className="text-lg">
-              {searchTerm ? "No products found" : "No products yet"}
+              {showActive 
+                ? (searchTerm ? "No active products found" : "No active products yet")
+                : (searchTerm ? "No discontinued products found" : "No discontinued products yet")
+              }
             </p>
             <p className="text-sm">
               {searchTerm
@@ -300,13 +374,17 @@ export default function StoreManageProducts() {
           filteredProducts.map((product) => (
             <div
               key={product.id}
-              className="border border-slate-200 rounded-lg p-4 bg-white"
+              className={`border border-slate-200 rounded-lg p-4 bg-white ${
+                !product.isActive ? 'bg-red-50 opacity-80' : ''
+              }`}
             >
               <div className="flex items-start gap-3 mb-3">
                 <Image
                   width={50}
                   height={50}
-                  className="p-1 shadow rounded flex-shrink-0"
+                  className={`p-1 shadow rounded flex-shrink-0 ${
+                    !product.isActive ? 'opacity-50' : ''
+                  }`}
                   src={
                     imageErrors[product.id]
                       ? "/placeholder-image.jpg"
@@ -316,12 +394,19 @@ export default function StoreManageProducts() {
                   onError={() => handleImageError(product.id)}
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-slate-800 truncate">
+                  <h3 className={`font-medium truncate ${
+                    !product.isActive ? 'line-through text-slate-500' : 'text-slate-800'
+                  }`}>
                     {product.name}
                   </h3>
                   <p className="text-slate-600 text-sm mt-1 line-clamp-2">
                     {product.description}
                   </p>
+                  {!product.isActive && (
+                    <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded w-fit mt-1 inline-block">
+                      Discontinued
+                    </span>
+                  )}
                   <div className="flex gap-4 mt-2">
                     <span className="text-slate-500 text-sm line-through">
                       {currency} {product.mrp.toLocaleString()}
@@ -335,19 +420,19 @@ export default function StoreManageProducts() {
               <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 <label
                   className={`relative inline-flex items-center cursor-pointer text-gray-900 gap-3 ${
-                    updatingProducts.has(product.id) ? "opacity-50" : ""
+                    updatingProducts.has(product.id) || !product.isActive ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   <input
                     type="checkbox"
                     className="sr-only peer"
                     onChange={() =>
-                      toast.promise(toggleStock(product.id), {
+                      !product.isActive ? null : toast.promise(toggleStock(product.id), {
                         loading: "Updating stock...",
                       })
                     }
                     checked={product.inStock}
-                    disabled={updatingProducts.has(product.id)}
+                    disabled={updatingProducts.has(product.id) || !product.isActive}
                   />
                   <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:bg-green-600 transition-colors duration-200"></div>
                   <span className="dot absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform duration-200 ease-in-out peer-checked:translate-x-4"></span>
@@ -356,11 +441,15 @@ export default function StoreManageProducts() {
                   </span>
                 </label>
                 <button
-                  onClick={() => deleteProduct(product.id, product.name)}
-                  disabled={deletingProducts.has(product.id)}
+                  onClick={() => 
+                    !product.isActive ? null : deleteProduct(product.id, product.name)
+                  }
+                  disabled={deletingProducts.has(product.id) || !product.isActive}
                   className={`relative p-2 rounded-full transition-all duration-200 ${
                     deletingProducts.has(product.id)
                       ? "bg-red-400 text-white cursor-not-allowed"
+                      : !product.isActive
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"
                   }`}
                 >

@@ -165,7 +165,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 
-                toast.success(data.message);
+                
                 router.push('/orders');
                 dispatch(fetchCart({ getToken }));
             }

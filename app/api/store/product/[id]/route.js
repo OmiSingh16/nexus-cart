@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from '@/lib/prisma';
 
-// DELETE /api/store/product/[id]
+// DELETE /api/store/product/[id] - SOFT DELETE
 export async function DELETE(request, { params }) {
   try {
     const { userId } = getAuth(request);
@@ -13,13 +13,13 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Not Authorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
-    // ✅ PERFECT: Verify product belongs to seller's store
+    // ✅ Verify product belongs to seller's store
     const product = await prisma.product.findFirst({
       where: { 
         id: id,
-        storeId: storeId // This is the security check!
+        storeId: storeId
       }
     });
 
@@ -27,21 +27,25 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Delete the product (now we're sure it belongs to the seller)
-    await prisma.product.delete({
-      where: { id }
+    // ✅ SOFT DELETE - ONLY update isActive and inStock
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: { 
+        isActive: false,    // Main soft delete flag
+        inStock: false      // Stock bhi false
+      }
     });
 
-    return NextResponse.json({ message: "Product deleted successfully" });
+    return NextResponse.json({ 
+      message: "Product discontinued successfully",
+      product: updatedProduct
+    });
     
   } catch (error) {
-    console.error("Delete product error:", error);
-    
-    // Handle Prisma specific errors
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-    }
-    
+    console.error("Discontinue product error:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
+
+// ✅ Stock toggle alag folder mein hai toh PATCH METHOD HATA DO
+// (Tumhara stock-toggle API alag route mein kaam karega)

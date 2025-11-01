@@ -10,14 +10,26 @@ import OrderItem from "@/components/OrderItem";
 import RatingModal from "@/components/RatingModal";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUserRating } from "@/lib/features/rating/ratingSlice";
+import CustomSelect from "@/components/CustomSelect";
+import { assets } from '@/assets/assets'
+import Image from "next/image";
 
 export default function Orders() {
   const { getToken } = useAuth();
   const { user, isLoaded } = useUser();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [ratingModal, setRatingModal] = useState(null);
+
+  const statusOptions = [
+    { value: 'ALL', label: 'All Orders' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'ORDER_PLACED', label: 'Confirmed' },
+    { value: 'SHIPPED', label: 'Shipped' },
+    { value: 'DELIVERED', label: 'Delivered' },
+    { value: 'CANCELLED', label: 'Cancelled' }
+  ];
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -28,12 +40,10 @@ export default function Orders() {
       try {
         const token = await getToken();
         
-        // Fetch orders and ratings in parallel
         const [ordersResponse] = await Promise.all([
           axios.get("/api/orders", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          // Fetch ratings if not already loaded
           ratings.length === 0 ? dispatch(fetchUserRating({ getToken })).unwrap() : Promise.resolve()
         ]);
 
@@ -56,9 +66,10 @@ export default function Orders() {
     }
   }, [isLoaded, user, getToken, router, dispatch, ratings.length]);
 
-  const filteredOrders = filter === "ALL"
+  // ✅ Filter logic update karo
+  const filteredOrders = filterStatus === 'ALL'
     ? orders
-    : orders.filter((order) => order.status?.toUpperCase() === filter.toUpperCase());
+    : orders.filter((order) => order.status?.toUpperCase() === filterStatus.toUpperCase());
 
   const handleRateProduct = (orderId, productId) => {
     setRatingModal({ orderId, productId });
@@ -80,18 +91,13 @@ export default function Orders() {
                 {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""} found
               </p>
             </div>
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-700 cursor-pointer min-w-[140px]"
-            >
-              <option value="ALL">All Orders</option>
-              <option value="PENDING">Pending</option>
-              <option value="ORDER_PLACED">Confirmed</option>
-              <option value="SHIPPED">Shipped</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+            <div className="w-48"> {/* ✅ Fixed width for desktop */}
+              <CustomSelect
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={statusOptions}
+              />
+            </div>
           </div>
 
           {/* Mobile View - Original Design */}
@@ -101,18 +107,13 @@ export default function Orders() {
               <p className="text-slate-600 font-medium">
                 {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""} found
               </p>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-700 cursor-pointer transition-all duration-200 hover:border-blue-500 shadow-sm font-medium"
-              >
-                <option value="ALL">📦 All Orders</option>
-                <option value="PENDING">⏳ Pending</option>
-                <option value="ORDER_PLACED">✅ Confirmed</option>
-                <option value="SHIPPED">🚚 Shipped</option>
-                <option value="DELIVERED">🎉 Delivered</option>
-                <option value="CANCELLED">❌ Cancelled</option>
-              </select>
+              <div className="w-full sm:w-48"> {/* ✅ Responsive width for mobile */}
+                <CustomSelect
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  options={statusOptions}
+                />
+              </div>
             </div>
           </div>
 
@@ -155,16 +156,18 @@ export default function Orders() {
         </div>
       ) : (
         <div className="min-h-[80vh] mx-6 flex flex-col items-center justify-center text-slate-400">
-          <div className="text-6xl mb-4">📦</div>
+          <div className="mb-4">
+    <Image className='w-35' src={assets.orderdelivery} alt="" />
+  </div>
           <h1 className="text-2xl sm:text-4xl font-semibold mb-4 text-center">
-            {filter !== "ALL"
-              ? `No orders found with status: ${filter.replace("_", " ").toLowerCase()}`
+            {filterStatus !== "ALL"
+              ? `No orders found with status: ${filterStatus.replace("_", " ").toLowerCase()}`
               : "Start shopping to see your orders here"}
           </h1>
           <div className="flex gap-4">
-            {filter !== "ALL" && (
+            {filterStatus !== "ALL" && (
               <button
-                onClick={() => setFilter("ALL")}
+                onClick={() => setFilterStatus("ALL")}
                 className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm"
               >
                 Show All Orders

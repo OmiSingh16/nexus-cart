@@ -7,6 +7,8 @@ import AdminNavbar from "./AdminNavbar";
 import AdminSidebar from "./AdminSidebar";
 import { useUser, useAuth } from "@clerk/nextjs";
 import axios from "axios";
+import Image from "next/image";
+import { assets } from "@/assets/assets";
 
 const AdminLayout = ({ children }) => {
   const { user, isLoaded } = useUser();
@@ -55,7 +57,10 @@ const AdminLayout = ({ children }) => {
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-2xl sm:text-4xl font-semibold text-slate-400">
+        <div >
+            <Image className='w-28 sm:w-36 md:w-44 lg:w-70  mx-auto border-2  border-slate-300 rounded-2xl bg-slate-50/50' src={assets.admin1} alt="Empty cart" />
+        </div> 
+        <h1 className=" pt-1 text-2xl sm:text-4xl font-semibold text-slate-400">
           You are not authorized to access this page
         </h1>
 
